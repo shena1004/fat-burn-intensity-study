@@ -18,17 +18,39 @@ def make_participant(pid: int, rng: np.random.Generator) -> Participant:
     return Participant(pid, sex, weight, fat_mass, ffm, rmr, appetite, neat, adher)
 
 def protocol_for_arm(arm: str, energy_matched: bool = False) -> dict:
-    # Defaults roughly time-matched: LISS ~45 min, SIT ~12-18 min with small EPOC
-    if arm == 'control':
-        return dict(session_type='control', session_kcal=0.0, epoc_kcal=0.0, neat_comp=0.0)
-    if arm == 'liss':
-        return dict(session_type='liss', session_kcal=250.0, epoc_kcal=0.0, neat_comp=0.0)
-    if arm == 'sit':
-        return dict(session_type='sit', session_kcal=170.0, epoc_kcal=40.0, neat_comp=0.05)
-    if arm == 'mixed':
-        # Will alternate liss/sit inside the loop
-        return dict(session_type='mixed', session_kcal=220.0, epoc_kcal=20.0, neat_comp=0.03)
+    """
+    Returns per-arm defaults.
+    If energy_matched=True, we aim for ~300 kcal total per session:
+    total ≈ session_kcal + epoc_kcal
+    """
+    TARGET = 300.0  # kcal per session when energy-matched
+
+    if energy_matched:
+        if arm == 'control':
+            return dict(session_type='control', session_kcal=0.0, epoc_kcal=0.0, neat_comp=0.0)
+        if arm == 'liss':
+            # All energy during the session; assume negligible EPOC
+            return dict(session_type='liss', session_kcal=TARGET, epoc_kcal=0.0, neat_comp=0.0)
+        if arm == 'sit':
+            # Keep a small afterburn; reduce session_kcal so total ≈ TARGET
+            epoc = 40.0
+            return dict(session_type='sit', session_kcal=TARGET - epoc, epoc_kcal=epoc, neat_comp=0.05)
+        if arm == 'mixed':
+            # We'll override per day (LISS vs SIT) later in run_sim
+            return dict(session_type='mixed', session_kcal=TARGET, epoc_kcal=0.0, neat_comp=0.03)
+    else:
+        # TIME-MATCHED defaults (original idea)
+        if arm == 'control':
+            return dict(session_type='control', session_kcal=0.0, epoc_kcal=0.0, neat_comp=0.0)
+        if arm == 'liss':
+            return dict(session_type='liss', session_kcal=250.0, epoc_kcal=0.0, neat_comp=0.0)
+        if arm == 'sit':
+            return dict(session_type='sit', session_kcal=170.0, epoc_kcal=40.0, neat_comp=0.05)
+        if arm == 'mixed':
+            return dict(session_type='mixed', session_kcal=220.0, epoc_kcal=20.0, neat_comp=0.03)
+
     raise ValueError(f"Unknown arm: {arm}")
+
 
 def weekly_schedule(arm: str):
     """Return a list of 7 booleans for session days. Defaults to 3 sessions/wk."""
@@ -59,10 +81,20 @@ def run_sim(weeks: int, n: int, arms: list[str], seed: int = 42, energy_matched:
                 # Mixed arm alternates: Mon LISS, Wed SIT, Fri LISS (example)
                 if arm == 'mixed' and is_session_day:
                     day_idx = d % 7
-                    if day_idx in (0, 4):   # Mon/Fri LISS
-                        prot_today = dict(prot, session_type='liss', session_kcal=230.0, epoc_kcal=0.0, neat_comp=0.0)
-                    else:                   # Wed SIT
-                        prot_today = dict(prot, session_type='sit', session_kcal=170.0, epoc_kcal=35.0, neat_comp=0.05)
+                    if energy_matched:
+                        TARGET = 300.0
+                        if day_idx in (0, 4):   # Mon/Fri LISS
+                            prot_today = dict(prot, session_type='liss', session_kcal=TARGET, epoc_kcal=0.0, neat_comp=0.0)
+                        else:                   # Wed SIT
+                            epoc = 40.0
+                            prot_today = dict(prot, session_type='sit', session_kcal=TARGET - epoc, epoc_kcal=epoc, neat_comp=0.05)
+                    else:
+                        # time-matched defaults
+                        if day_idx in (0, 4):   # Mon/Fri LISS
+                            prot_today = dict(prot, session_type='liss', session_kcal=230.0, epoc_kcal=0.0, neat_comp=0.0)
+                        else:                   # Wed SIT
+                            prot_today = dict(prot, session_type='sit', session_kcal=170.0, epoc_kcal=35.0, neat_comp=0.05)
+
                 else:
                     prot_today = prot
 
