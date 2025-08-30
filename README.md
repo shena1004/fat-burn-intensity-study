@@ -1,8 +1,11 @@
 # Fat-Burn Intensity Study (Simulation + Study Design)
 
-**Question (pick one primary):**
-- *Time-matched:* Over 8–12 weeks, does ~45 min low-intensity steady state (LISS) vs ~15–18 min sprint-interval training (SIT) produce different **fat-mass** change?
-- *Energy-matched:* When sessions expend ~300 kcal, does LISS vs SIT change **fat mass** differently?
+**Question:**
+**Primary comparison: ENERGY-MATCHED ✅**
+
+- ~~Time-matched: Over 8–12 weeks, does ~45 min LISS vs ~15–18 min SIT produce different fat-mass change?~~
+- **Energy-matched (selected):** When sessions expend ~300 kcal, does LISS vs SIT change **fat mass** differently?
+
 
 This repo helps you:
 1) Write down your **pre-registration-style plan**.
